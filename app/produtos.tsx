@@ -1,132 +1,251 @@
-import { useMemo, useState } from "react";
-
+import { useEffect, useMemo, useState } from "react";
 import {
-  Alert,
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
+  Text,
+  Image,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+interface Produto {
+  id: number | string;
+  nome: string;
+  categoria: string;
+  preco: number | string;
+  imagem: string;
+  descricao: string;
+}
 
-import todosProdutos, { Produto } from "../constants/produtos";
+/*
+ * IMPORTANTE:
+ *
+ * Se estiver usando Expo no celular físico,
+ * NÃO use localhost.
+ *
+ * Coloque o IP do computador onde o backend está rodando.
+ *
+ * Exemplo:
+ * http://192.168.1.100:3000
+ *
+ * Se estiver usando Android Emulator:
+ * http://10.0.2.2:3000
+ */
+const API_URL = "http://192.168.1.100:3000";
 
-export default function ProdutosScreen() {
+const categorias = [
+  "TODOS",
+  "TV",
+  "NOTEBOOK",
+  "Computador",
+  "Periférico",
+  "CELULARES",
+];
+
+export default function Explore() {
+  const [produtos, setProdutos] = useState<Produto[]>([]);
   const [categoriaAtiva, setCategoriaAtiva] = useState("TODOS");
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState("");
 
-  const categorias = [
-    "TODOS",
-    "TV",
-    "NOTEBOOK",
-    "Computador",
-    "Periférico",
-  ];
+  useEffect(() => {
+    buscarProdutos();
+  }, []);
+
+  async function buscarProdutos() {
+    try {
+      setCarregando(true);
+      setErro("");
+
+      const response = await fetch(`${API_URL}/produtos`);
+
+      if (!response.ok) {
+        throw new Error(
+          `Erro ao buscar produtos. Status: ${response.status}`
+        );
+      }
+
+      const dados = await response.json();
+
+      /*
+       * Aceita tanto:
+       *
+       * [
+       *   {...}
+       * ]
+       *
+       * quanto:
+       *
+       * {
+       *   produtos: [...]
+       * }
+       */
+      const listaProdutos = Array.isArray(dados)
+        ? dados
+        : dados.produtos;
+
+      if (!Array.isArray(listaProdutos)) {
+        throw new Error("Formato de produtos inválido.");
+      }
+
+      /*
+       * Remove GAMER e APPLE caso ainda existam
+       * no banco de dados.
+       */
+      const produtosPermitidos = listaProdutos.filter(
+        (produto: Produto) =>
+          produto.categoria?.toUpperCase() !== "GAMER" &&
+          produto.categoria?.toUpperCase() !== "APPLE"
+      );
+
+      setProdutos(produtosPermitidos);
+    } catch (error) {
+      console.error("Erro ao buscar produtos:", error);
+
+      setErro(
+        "Não foi possível carregar os produtos. Verifique se o servidor está funcionando."
+      );
+    } finally {
+      setCarregando(false);
+    }
+  }
 
   const produtosFiltrados = useMemo(() => {
     if (categoriaAtiva === "TODOS") {
-      return todosProdutos;
+      return produtos;
     }
 
-    return todosProdutos.filter(
-      (produto) => produto.categoria === categoriaAtiva,
+    return produtos.filter(
+      (produto) =>
+        produto.categoria?.toUpperCase() ===
+        categoriaAtiva.toUpperCase()
     );
-  }, [categoriaAtiva]);
+  }, [categoriaAtiva, produtos]);
 
-  async function adicionarCarrinho(produto: Produto) {
-    try {
-      const dados = await AsyncStorage.getItem("carrinho");
-
-      const carrinho: Produto[] = dados
-        ? JSON.parse(dados)
-        : [];
-
-      const index = carrinho.findIndex(
-        (item) => item.nome === produto.nome,
-      );
-
-      if (index !== -1) {
-        const quantidadeAtual =
-          carrinho[index].quantidade ?? 1;
-
-        if (quantidadeAtual < 5) {
-          carrinho[index].quantidade =
-            quantidadeAtual + 1;
-        } else {
-          Alert.alert(
-            "Limite atingido",
-            "Você pode adicionar até 5 unidades.",
-          );
-
-          return;
-        }
-      } else {
-        carrinho.push({
-          ...produto,
-          quantidade: 1,
-        });
-      }
-
-      await AsyncStorage.setItem(
-        "carrinho",
-        JSON.stringify(carrinho),
-      );
-
-      Alert.alert(
-        "Sucesso",
-        "Produto adicionado ao carrinho!",
-      );
-    } catch (error) {
-      console.log("Erro ao adicionar ao carrinho:", error);
-
-      Alert.alert(
-        "Erro",
-        "Não foi possível adicionar o produto.",
-      );
+  function formatarPreco(preco: number | string) {
+    if (typeof preco === "number") {
+      return preco.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      });
     }
+
+    /*
+     * Caso o banco já envie:
+     * R$ 2.799,90
+     */
+    if (preco.includes("R$")) {
+      return preco;
+    }
+
+    /*
+     * Caso envie:
+     * "2799.90"
+     */
+    const numero = Number(
+      preco.replace(".", "").replace(",", ".")
+    );
+
+    if (!isNaN(numero)) {
+      return numero.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      });
+    }
+
+    return preco;
+  }
+
+  function adicionarCarrinho(produto: Produto) {
+    Alert.alert(
+      "Carrinho",
+      `${produto.nome} adicionado ao carrinho!`
+    );
+  }
+
+  if (carregando) {
+    return (
+      <View style={styles.carregando}>
+        <ActivityIndicator size="large" color="#e30613" />
+
+        <Text style={styles.textoCarregando}>
+          Carregando produtos...
+        </Text>
+      </View>
+    );
+  }
+
+  if (erro) {
+    return (
+      <View style={styles.erroContainer}>
+        <Text style={styles.erroTitulo}>
+          Erro ao carregar produtos
+        </Text>
+
+        <Text style={styles.erroTexto}>
+          {erro}
+        </Text>
+
+        <TouchableOpacity
+          style={styles.botaoTentarNovamente}
+          onPress={buscarProdutos}
+        >
+          <Text style={styles.botaoTentarTexto}>
+            Tentar novamente
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   return (
     <View style={styles.container}>
-      {/* FILTROS DE CATEGORIA */}
+      {/* FILTROS */}
       <View style={styles.filtros}>
-        {categorias.map((categoria) => (
+        {categorias.map((cat) => (
           <TouchableOpacity
-            key={categoria}
-            onPress={() =>
-              setCategoriaAtiva(categoria)
-            }
+            key={cat}
+            onPress={() => setCategoriaAtiva(cat)}
             style={[
               styles.filtroBotao,
-              categoriaAtiva === categoria &&
+              categoriaAtiva === cat &&
                 styles.filtroBotaoAtivo,
             ]}
           >
             <Text
               style={[
                 styles.filtroTexto,
-                categoriaAtiva === categoria &&
+                categoriaAtiva === cat &&
                   styles.filtroTextoAtivo,
               ]}
             >
-              {categoria}
+              {cat}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* LISTA DE PRODUTOS */}
+      {/* PRODUTOS */}
       <FlatList
         data={produtosFiltrados}
-        keyExtractor={(item, index) =>
-          `${item.nome}-${index}`
-        }
+        keyExtractor={(item) => String(item.id)}
         numColumns={2}
         contentContainerStyle={styles.lista}
         columnWrapperStyle={styles.colunas}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.vazio}>
+            <Text style={styles.vazioTitulo}>
+              Nenhum produto encontrado
+            </Text>
+
+            <Text style={styles.vazioTexto}>
+              Não existem produtos nessa categoria.
+            </Text>
+          </View>
+        }
         renderItem={({ item }) => (
           <View style={styles.card}>
             {/* IMAGEM */}
@@ -160,10 +279,9 @@ export default function ProdutosScreen() {
 
             {/* PREÇO */}
             <Text style={styles.cardPreco}>
-              {item.preco}
+              {formatarPreco(item.preco)}
             </Text>
 
-            {/* PIX */}
             <Text style={styles.cardPix}>
               À vista no PIX
             </Text>
@@ -171,24 +289,14 @@ export default function ProdutosScreen() {
             {/* BOTÃO */}
             <TouchableOpacity
               style={styles.cardBotao}
-              onPress={() =>
-                adicionarCarrinho(item)
-              }
-              activeOpacity={0.8}
+              onPress={() => adicionarCarrinho(item)}
             >
               <Text style={styles.cardBotaoTexto}>
-                Adicionar ao carrinho
+                Adicionar no carrinho
               </Text>
             </TouchableOpacity>
           </View>
         )}
-        ListEmptyComponent={
-          <View style={styles.semProdutos}>
-            <Text style={styles.semProdutosTexto}>
-              Nenhum produto encontrado.
-            </Text>
-          </View>
-        }
       />
     </View>
   );
@@ -198,6 +306,54 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
+  },
+
+  carregando: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+  },
+
+  textoCarregando: {
+    marginTop: 12,
+    fontSize: 15,
+    color: "#666",
+  },
+
+  erroContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 25,
+    backgroundColor: "#f5f5f5",
+  },
+
+  erroTitulo: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#e30613",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+
+  erroTexto: {
+    fontSize: 14,
+    color: "#555",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+
+  botaoTentarNovamente: {
+    backgroundColor: "#e30613",
+    paddingHorizontal: 25,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+
+  botaoTentarTexto: {
+    color: "#fff",
+    fontWeight: "bold",
   },
 
   filtros: {
@@ -245,15 +401,25 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 10,
     marginBottom: 12,
+
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+
     elevation: 3,
   },
 
   cardImagemBox: {
-    height: 130,
     backgroundColor: "#fafafa",
     borderRadius: 12,
-    justifyContent: "center",
+    height: 120,
     alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
     overflow: "hidden",
   },
 
@@ -266,27 +432,26 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 6,
     left: 6,
-    zIndex: 1,
     backgroundColor: "#e30613",
     color: "#fff",
     fontSize: 10,
     fontWeight: "bold",
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 2,
     borderRadius: 10,
+    zIndex: 1,
   },
 
   cardNome: {
-    fontSize: 14,
     fontWeight: "bold",
     color: "#222",
-    marginTop: 8,
+    marginBottom: 4,
   },
 
   cardDescricao: {
     fontSize: 11,
     color: "#777",
-    marginVertical: 6,
+    marginBottom: 6,
   },
 
   cardPreco: {
@@ -314,15 +479,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
-  semProdutos: {
+  vazio: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     padding: 30,
   },
 
-  semProdutosTexto: {
-    fontSize: 16,
+  vazioTitulo: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 8,
+  },
+
+  vazioTexto: {
+    fontSize: 14,
     color: "#777",
+    textAlign: "center",
   },
 });

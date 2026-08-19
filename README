@@ -1,0 +1,190 @@
+# Documentação do Aplicativo Mobile
+
+## Nome do Aplicativo
+
+**Assistência Técnica Forja**
+
+---
+
+# Objetivo
+
+O aplicativo **Assistência Técnica Forja** foi desenvolvido para permitir que clientes consultem produtos, peças, realizem compras e acompanhem seus pedidos diretamente pelo celular, oferecendo uma experiência prática, rápida e intuitiva.
+
+---
+
+# Tecnologias Utilizadas
+
+* React Native
+* Expo
+* TypeScript
+* Expo Router
+* AsyncStorage
+* React Navigation
+
+---
+
+# Telas
+
+## 1. Tela Inicial (Home)
+
+### Objetivo
+
+Apresentar a página principal da aplicação, permitindo a pesquisa de produtos e acesso às principais funcionalidades do sistema.
+
+### Funcionalidades
+
+* Exibição de ofertas de celulares;
+* Barra de pesquisa de produtos;
+* Acesso ao login;
+* Acesso à lista de produtos;
+* Acesso à lista de peças;
+* Acesso ao carrinho;
+* Adição de produtos ao carrinho;
+* Pesquisa por nome, categoria, descrição e preço. 
+
+---
+
+## 2. Tela de Login
+
+### Objetivo
+
+Permitir que o usuário realize o login ou cadastre uma nova conta para utilizar os recursos do aplicativo.
+
+### Funcionalidades
+
+* Login;
+* Cadastro de usuário;
+* Validação de dados;
+* Armazenamento das informações do usuário;
+* Retorno para a tela inicial após autenticação. 
+
+---
+
+## 3. Tela de Produtos
+
+### Objetivo
+
+Exibir todos os produtos disponíveis para venda organizados por categoria.
+
+### Funcionalidades
+
+* Listagem de produtos;
+* Filtro por categorias;
+* Exibição de imagem, descrição e preço;
+* Adição de produtos ao carrinho. 
+
+---
+
+## 4. Tela de Peças
+
+### Objetivo
+
+Apresentar o catálogo de peças utilizadas na assistência técnica.
+
+### Funcionalidades
+
+* Listagem de peças para celulares;
+* Listagem de peças para computadores;
+* Visualização das informações de cada peça;
+* Adição das peças ao carrinho. 
+
+---
+
+## 5. Tela de Pagamento
+
+### Objetivo
+
+Permitir que o usuário finalize a compra escolhendo a forma de pagamento.
+
+### Funcionalidades
+
+* Pagamento via PIX;
+* Pagamento por cartão;
+* Validação dos dados do cartão;
+* Confirmação do pagamento;
+* Limpeza automática do carrinho após a compra. 
+
+---
+
+## Navegação
+
+O aplicativo utiliza o **Expo Router** para realizar a navegação entre as telas.
+
+### Estrutura das Rotas
+
+```text
+Home
+│
+├── Login
+│
+├── Produtos
+│
+├── Peças
+│
+├── Carrinho
+│
+└── Pagamento
+```
+
+As rotas são registradas no arquivo de layout principal do aplicativo. 
+
+---
+
+## Fluxo do Usuário
+
+1. O usuário abre o aplicativo.
+2. A tela inicial é exibida com produtos em destaque.
+3. O usuário pode pesquisar produtos ou navegar pelo catálogo.
+4. Caso deseje realizar uma compra, pode efetuar login ou criar uma conta.
+5. Os produtos e peças podem ser adicionados ao carrinho.
+6. Após selecionar os itens desejados, o usuário acessa a tela de pagamento.
+7. O pagamento pode ser realizado via PIX ou cartão.
+8. Após a confirmação do pagamento, a compra é finalizada e o usuário retorna à tela inicial.  
+
+---
+
+# Estrutura do Aplicativo
+
+```text
+mobile/
+│
+├── app/
+│   ├── index.tsx
+│   ├── login.tsx
+│   ├── produtosScreen.tsx
+│   ├── pecas.tsx
+│   ├── pagamento.tsx
+│   ├── produtos.tsx
+│   └── _layout.tsx
+│
+├── assets/
+│
+└── components/
+```
+
+---
+
+# Recursos do Dispositivo
+
+## Armazenamento Local (AsyncStorage)
+
+O aplicativo utiliza o **AsyncStorage** para armazenar informações do usuário autenticado e os produtos adicionados ao carrinho, permitindo manter esses dados mesmo após o fechamento do aplicativo.  
+
+---
+
+## Navegação
+
+A navegação entre as telas é realizada utilizando **Expo Router**, proporcionando uma estrutura organizada e intuitiva para o usuário. 
+
+---
+
+# Benefícios do Aplicativo
+
+* Interface simples e intuitiva;
+* Pesquisa rápida de produtos;
+* Catálogo organizado por categorias;
+* Compra de produtos e peças pelo celular;
+* Carrinho de compras integrado;
+* Login e cadastro de usuários;
+* Finalização de compras com pagamento via PIX ou cartão;
+* Facilidade de navegação entre as telas.
